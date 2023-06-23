@@ -6,6 +6,36 @@
 #include <string.h>
 #include <unistd.h>
 
+void saveGame(struct map *M){
+
+	int i;
+	FILE* arq = fopen("save", "wb");
+	fwrite(M, sizeof(struct map), 1, arq);
+	for (i = 0; i < HEIGHT / LTH; i++)
+		fwrite(M->matrix[i], 1, 1 + WIDTH / LTH, arq);
+	fwrite(M->Enemies, sizeof(struct enemy), M->enemyNo, arq);
+	fclose(arq);
+}
+
+struct map* loadGame(int* mapName){
+	int i, j;
+	FILE* arq = fopen("save", "rb");
+	struct map *M = malloc(sizeof(struct map));
+	fread(M, sizeof(struct map), 1, arq);
+	M->matrix = malloc((HEIGHT / LTH) * 8);
+	for (i = 0; i < HEIGHT / LTH; i++){
+		M->matrix[i] = malloc(1 + WIDTH / LTH);
+		fread(M->matrix[i], 1, 1 + WIDTH / LTH, arq);
+	}
+	j = M->enemyNo;
+	M->Enemies = malloc(j * sizeof(struct enemy));
+	fread(M->Enemies, sizeof(struct enemy), j, arq);
+	M->enemyNo = j;
+	*mapName = M->mapNum;
+	fclose(arq);
+	return M;
+}
+
 
 char** getMap(char *mapName){
 	FILE* arq = fopen(mapName, "r");
@@ -32,17 +62,17 @@ void initializeMonster(struct map *M, int coordx, int coordy){
 		i = M->enemyNo;
 		M->enemyNo++;
 	}
-	M->Enemies[i].posX = coordx;
-	M->Enemies[i].posY = coordy;
+	M->Enemies[i].posX = M->Enemies[i].posXIni = coordx;
+	M->Enemies[i].posY = M->Enemies[i].posYIni = coordy;
 	M->Enemies[i].cycle = 0;
 	M->Enemies[i].health = ENEMYHEALTH;
 	M->Enemies[i].orientation = rand() % 4;
 }
 
 void initializePlayer(struct map *M, int coordx, int coordy){
-	M->Link.posX = coordx;
-	M->Link.posY = coordy;
-	M->Link.health = 6;
+	M->Link.posX = M->Link.posXIni = coordx;
+	M->Link.posY = M->Link.posYIni = coordy;
+	M->Link.health = 3;
 	M->Link.orientation = 2;
 	M->Link.lifes = LIFES;
 	M->Link.isAtacking = false;
@@ -56,9 +86,7 @@ struct map* initializeMap(char* mapName){
 	if (matrix == NULL)
 		return NULL;
 	M = malloc(sizeof(struct map));
-	M->mapNameLth = strlen(mapName);
-	M->mapName = malloc(M->mapNameLth + 1);
-	strcpy(M->mapName, mapName);
+	M->mapNum = 0;
 	M->matrix = matrix;
 	M->Enemies = NULL;
 	
@@ -74,6 +102,7 @@ struct map* initializeMap(char* mapName){
 					matrix[i][j] = 'B';
 			}
 		}
+	M->aliveEnemyNo = M->enemyNo;
 	return M;
 }
 
@@ -88,6 +117,10 @@ int getMovement(void){
 		rv = 2;
 	else if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A))
 		rv = 3;
+	else if (IsKeyDown(KEY_Y))
+		rv = 4;
+	else if (IsKeyDown(KEY_U))
+		rv = 5;
 	return rv;
 }
 
@@ -114,11 +147,11 @@ void setPlayerAtack(struct map *M, int input){
 	if (orientation % 2){
 		acc = 2 - orientation;
 		for (i = 0; i < SWORDLEN; i++){
-			if (M->matrix[coordy][coordx + acc * i] == 'O'){
-				i--;
+			if (coordx + acc * i > WIDTH / LTH || coordx + acc * i < 0 || M->matrix[coordy][coordx + acc * i] == 'O'){
 				break;
 			}
 		}
+		i--;
 		if (i){
 			if (acc > 0)
 				M->playerAttack.xEnd += i;
@@ -129,16 +162,17 @@ void setPlayerAtack(struct map *M, int input){
 	else{
 		acc = orientation - 1;
 		for (i = 0; i < SWORDLEN; i++){
-			if (M->matrix[coordy + acc * i][coordx] == 'O'){
-				i--;
+			if (coordy + acc * i > HEIGHT / LTH - 1 || coordy + acc * i < 0 || M->matrix[coordy + acc * i][coordx] == 'O'){
 				break;
 			}
 		}
+		i--;
 		if (i){
 			if (acc > 0)
 				M->playerAttack.yEnd += i;
 			else
 				M->playerAttack.yIni -= i;
+
 		}
 	}
 
@@ -212,10 +246,12 @@ void compose(struct map *M){
 			else if (M->matrix[i][j] == 'O')
 				DrawRectangle(j * LTH, i * LTH, LTH, LTH, GRAY);
 		}
-	DrawRectangle(M->Link.posX * LTH, M->Link.posY*LTH, LTH, LTH, GREEN);
 	for (i = 0; i < M->enemyNo; i++)
 		if (M->Enemies[i].health > 0)
 			DrawRectangle(M->Enemies[i].posX * LTH, M->Enemies[i].posY * LTH, LTH, LTH, RED);
+
+	DrawRectangle(M->Link.posX * LTH, M->Link.posY*LTH, LTH, LTH, GREEN);
+
 	if (isPlayerAtacking(M)){
 
 		j = M->Link.orientation;
@@ -264,7 +300,7 @@ int getMonsterQuantity(struct map *M){
 
 
 
-void calcDMG(struct map *M){
+bool calcDMG(struct map *M){
 
 	int enemies, i, j;
 
@@ -272,7 +308,7 @@ void calcDMG(struct map *M){
 
 	for (i = 0; i < enemies; i++){
 		if (M->Link.posX == M->Enemies[i].posX && M->Link.posY == M->Enemies[i].posY && M->Enemies[i].health > 0)
-			dmgPlayer(M);
+			return dmgPlayer(M);
 		if(isPlayerAtacking(M) &&
 		M->Enemies[i].health > 0 &&
 		M->Enemies[i].posX <= M->playerAttack.xEnd &&
@@ -283,12 +319,45 @@ void calcDMG(struct map *M){
 			 M->playerAttack.yEnd != M->playerAttack.yIni))
 			dmgEnemy(M, i);
 	}
+	return 0;
 }
 
-void dmgPlayer(struct map *M){
-	CloseWindow();
+bool dmgPlayer(struct map *M){
+	int i;
+	int rv;
+	if (M->Link.lifes > 0){
+		compose(M);
+		M->Link.posX = M->Link.posXIni;
+		M->Link.posY = M->Link.posYIni;
+
+		for (i = 0; i < M->enemyNo; i++){
+			M->Enemies[i].posX = M->Enemies[i].posXIni;
+			M->Enemies[i].posY = M->Enemies[i].posYIni;
+			M->Enemies[i].orientation = rand() % 4;
+		}
+		M->Link.lifes--;
+		rv = 0;
+	}
+	else
+		rv = 1;
+	return rv;
 }
 
 void dmgEnemy(struct map *M, int enemyNum){
 	M->Enemies[enemyNum].health = 0;
+	M->aliveEnemyNo--;
+}
+
+
+
+void closeMap(struct map *M, bool endGame){
+	int i;
+	if (endGame){
+		CloseWindow();
+	}
+	free(M->Enemies);
+	for (i = 0; i < HEIGHT / LTH; i++){
+		free(M->matrix[i]);
+	}
+	free(M);
 }

@@ -8,12 +8,12 @@
 #define MAXCYCLE 5
 #define FPS 120
 #define TICK 15
-#define SWORDLEN 2
+#define SWORDLEN 5
 #define ATACKTIMER 2
 
 struct player{
-	int posX;
-	int posY;
+	int posX, posXIni;
+	int posY, posYIni;
 	short orientation;
 
 	int health;
@@ -27,8 +27,8 @@ struct player{
 };
 
 struct enemy{
-	int posX;
-	int posY;
+	int posX, posXIni;
+	int posY, posYIni;
 	short orientation;
 	int cycle;
 	int health;
@@ -47,18 +47,18 @@ struct dangerArea{
 };
 
 struct map{
-	int mapNameLth;
-	char* mapName;
+	int mapNum;
 	char** matrix;
 	struct enemy* Enemies;
 	int enemyNo;
+	int aliveEnemyNo;
 	struct player Link;
 	struct dangerArea playerAttack;
 };
 
-void calcDMG(struct map *M);
+bool calcDMG(struct map *M);
 
-void dmgPlayer(struct map *M);
+bool dmgPlayer(struct map *M);
 
 void dmgEnemy(struct map *M, int enemyNum);
 
@@ -66,6 +66,9 @@ char** getMap(char *mapName);
 
 struct map* initializeMap(char* mapName);
 
+void saveGame(struct map *M);
+
+struct map* loadGame(int* mapNum);
 //retorna orientação
 int getMovement(void);
 
@@ -86,3 +89,5 @@ void movePlayer(struct map *M, int orientation);
 void compose(struct map *M);
 
 int getMonsterQuantity(struct map *M);
+
+void closeMap(struct map *M, bool endGame);
