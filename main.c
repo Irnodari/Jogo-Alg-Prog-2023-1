@@ -1,34 +1,32 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdbool.h>
-#include <raylib.h>
-#include "header.h"
-#include <time.h>
+#include "functions.h"
 
 int main(void){
 	srand(clock());
-	struct map *M;
-	int i, j;
-	int input, frame = 0;
+	struct map *M, *buf;
+	int i, j, input, frame = 0, mapNum = 1, controlState;
 	char* template = "mapas/mapa%d.txt";
 	char mapName[32];
-	int mapNum = 1;
 	struct player TemporaryPlayer;
 	bool shouldKeepGoing;
+	bool gameEnded = false;
 
-	system("touch save");
 
 	TemporaryPlayer.health = -2;
 
-	InitWindow(WIDTH, HEIGHT, "Game");
-
+	InitWindow(WIDTH,60 + HEIGHT, "Game");
 	SetTargetFPS(FPS);
-	do{
 
+	controlState = callMainMenu();
+	if (controlState == 2){
+		CloseWindow();
+		return 0;
+	}
+
+	do{
 		sprintf(mapName, template, mapNum);
 		M = initializeMap(mapName);
 		if (M != NULL){
+			M->mapNum = mapNum;
 			if (TemporaryPlayer.health != -2){
 				TemporaryPlayer.posX = TemporaryPlayer.posXIni = M->Link.posX;
 				TemporaryPlayer.posY = TemporaryPlayer.posYIni = M->Link.posY;
@@ -37,6 +35,16 @@ int main(void){
 				M->mapNum = mapNum;
 			}
 			do{
+				if (controlState == 1){
+					buf = loadGame(&i);
+					if (buf != NULL){
+						closeMap(M, false);
+						M = buf;
+					}
+					controlState = 0;
+				}
+				if (IsKeyPressed(KEY_P))
+						callPause(&M, &mapNum);
 				if (!(frame % TICK)){
 					input = getMovement();
 					if (isPlayerAtacking(M)){
@@ -53,8 +61,11 @@ int main(void){
 					else if (input == 4)
 						saveGame(M);
 					else if (input == 5){
-						closeMap(M, false);
-						M = loadGame(&mapNum);
+						buf = loadGame(&i);
+						if (buf != NULL){
+							closeMap(M, false);
+							M = buf;
+						}
 					}
 					else if (input != -1){
 						if(canMovePlayer(M, input))
@@ -74,7 +85,7 @@ int main(void){
 				frame++;
 				if (frame == FPS)
 					frame = 0;
-			}while(!WindowShouldClose() && !calcDMG(M) && M->aliveEnemyNo);
+			} while(!WindowShouldClose() && !calcDMG(M) && M->aliveEnemyNo);
 
 			TemporaryPlayer = M->Link;
 			TemporaryPlayer.isAtacking = false;
@@ -84,12 +95,24 @@ int main(void){
 			mapNum++;
 		}
 		else{
-			printf("Você ganhou!\n");
 			shouldKeepGoing = false;
+			gameEnded = true;
 		}
-	}while(shouldKeepGoing);
+	} while(shouldKeepGoing);
+	if (TemporaryPlayer.lifes >= 0 && gameEnded){
+		callWin();
+		callSaveScore(TemporaryPlayer.score);
+	}
+	else if (TemporaryPlayer.lifes < 0){
+		callLose();
+		callSaveScore(TemporaryPlayer.score);
+	}
+	
+
 	if (M != NULL)	
 		closeMap(M, true);
+	else
+		CloseWindow();
 
 	return 0;
 }
