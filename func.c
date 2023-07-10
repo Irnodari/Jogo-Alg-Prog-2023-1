@@ -25,13 +25,13 @@ struct map* initializeMap(char* mapName){
 	M->mapNum = 0;
 	M->matrix = matrix;
 	M->Enemies = NULL;
-	M->Ground = LoadTexture("sprites/Ground.png");
-	M->Obstacle = LoadTexture("sprites/Obstacle.png");
+	M->Ground = LoadTexture("./sprites/Ground.png");
+	M->Obstacle = LoadTexture("./sprites/Obstacle.png");
 
-	M->playerAttack.Textures[1] = LoadTexture("sprites/Attack_right.png");
-	M->playerAttack.Textures[3] = LoadTexture("sprites/Attack_left.png");
-	M->playerAttack.Textures[0] = LoadTexture("sprites/Attack_up.png");
-	M->playerAttack.Textures[2] = LoadTexture("sprites/Attack_down.png");
+	M->playerAttack.Textures[1] = LoadTexture("./sprites/Attack_right.png");
+	M->playerAttack.Textures[3] = LoadTexture("./sprites/Attack_left.png");
+	M->playerAttack.Textures[0] = LoadTexture("./sprites/Attack_up.png");
+	M->playerAttack.Textures[2] = LoadTexture("./sprites/Attack_down.png");
 
 	
 	for (i = 0; i < HEIGHT / LTH; i++)
@@ -80,10 +80,10 @@ void initializeMonster(struct map *M, int coordx, int coordy){
 	M->Enemies[i].cycle = 0;
 	M->Enemies[i].health = ENEMYHEALTH;
 	M->Enemies[i].orientation = rand() % 4;
-	M->Enemies[i].Textures[0] = LoadTexture("sprites/Enemy_right.png");
-	M->Enemies[i].Textures[2] = LoadTexture("sprites/Enemy_left.png");
-	M->Enemies[i].Textures[3] = LoadTexture("sprites/Enemy_back.png");
-	M->Enemies[i].Textures[1] = LoadTexture("sprites/Enemy_front.png");
+	M->Enemies[i].Textures[0] = LoadTexture("./sprites/Enemy_right.png");
+	M->Enemies[i].Textures[2] = LoadTexture("./sprites/Enemy_left.png");
+	M->Enemies[i].Textures[3] = LoadTexture("./sprites/Enemy_back.png");
+	M->Enemies[i].Textures[1] = LoadTexture("./sprites/Enemy_front.png");
 }
 
 void initializePlayer(struct map *M, int coordx, int coordy){
@@ -94,10 +94,10 @@ void initializePlayer(struct map *M, int coordx, int coordy){
 	M->Link.lifes = LIFES;
 	M->Link.isAtacking = false;
 	M->Link.score = 0;
-	M->Link.Textures[1] = LoadTexture("sprites/Link_right.png");
-	M->Link.Textures[3] = LoadTexture("sprites/Link_left.png");
-	M->Link.Textures[0] = LoadTexture("sprites/Link_back.png");
-	M->Link.Textures[2] = LoadTexture("sprites/Link_front.png");
+	M->Link.Textures[1] = LoadTexture("./sprites/Link_right.png");
+	M->Link.Textures[3] = LoadTexture("./sprites/Link_left.png");
+	M->Link.Textures[0] = LoadTexture("./sprites/Link_back.png");
+	M->Link.Textures[2] = LoadTexture("./sprites/Link_front.png");
 
 }
 
@@ -129,11 +129,67 @@ struct map* loadGame(int* mapName){
 	j = M->enemyNo;
 	M->Enemies = malloc(j * sizeof(struct enemy));
 	fread(M->Enemies, sizeof(struct enemy), j, arq);
-	M->enemyNo = j;
+
+	M->Link.Textures[1] = LoadTexture("./sprites/Link_right.png");
+	M->Link.Textures[3] = LoadTexture("./sprites/Link_left.png");
+	M->Link.Textures[0] = LoadTexture("./sprites/Link_back.png");
+	M->Link.Textures[2] = LoadTexture("./sprites/Link_front.png");
+
+	M->playerAttack.Textures[1] = LoadTexture("./sprites/Attack_right.png");
+	M->playerAttack.Textures[3] = LoadTexture("./sprites/Attack_left.png");
+	M->playerAttack.Textures[0] = LoadTexture("./sprites/Attack_up.png");
+	M->playerAttack.Textures[2] = LoadTexture("./sprites/Attack_down.png");
+
+	M->Ground = LoadTexture("./sprites/Ground.png");
+	M->Obstacle = LoadTexture("./sprites/Obstacle.png");
+
+	for (i = 0; i < M->enemyNo; i++){
+		M->Enemies[i].Textures[0] = LoadTexture("./sprites/Enemy_right.png");
+		M->Enemies[i].Textures[2] = LoadTexture("./sprites/Enemy_left.png");
+		M->Enemies[i].Textures[3] = LoadTexture("./sprites/Enemy_back.png");
+		M->Enemies[i].Textures[1] = LoadTexture("./sprites/Enemy_front.png");
+	}
 	*mapName = M->mapNum;
 	fclose(arq);
 	return M;
 }
+
+
+//Salvamento de score
+
+void saveScore(char* name, int score){
+	int size, i, j;
+	struct score scores[10];
+	FILE* arq = fopen("scoreboard", "rb");
+	if (arq != NULL){
+		fread(&size, sizeof(int), 1, arq);
+		fread(scores, sizeof(struct score), size, arq);
+		fclose(arq);
+		i = 0;
+		while (i < size && score <= scores[i].score) i++;
+		j = size;
+		while (j > i){
+			if (j != 10)
+				scores[j] = scores[j - 1];
+			j--;
+		}
+		strcpy(scores[i].name, name);
+		scores[i].score = score;
+		if (size != 10)
+			size++;
+	}
+	else{
+		size = 1;
+		strcpy(scores->name, name);
+		scores->score = score;
+	}
+	arq = fopen("scoreboard", "wb");
+	fwrite(&size, sizeof(int), 1, arq);
+	fwrite(scores, sizeof(struct score), size, arq);
+	fclose(arq); 
+}
+
+
 
 //funções de controle e IA
 int getMovement(void){
@@ -176,7 +232,7 @@ void setPlayerAtack(struct map *M, int input){
 
 	if (orientation % 2){
 		acc = 2 - orientation;
-		for (i = 0; i < SWORDLEN; i++){
+		for (i = 0; i <= SWORDLEN; i++){
 			if (coordx + acc * i > WIDTH / LTH || coordx + acc * i < 0 || M->matrix[coordy][coordx + acc * i] == 'O'){
 				break;
 			}
@@ -191,7 +247,7 @@ void setPlayerAtack(struct map *M, int input){
 	}
 	else{
 		acc = orientation - 1;
-		for (i = 0; i < SWORDLEN; i++){
+		for (i = 0; i <= SWORDLEN; i++){
 			if (coordy + acc * i > HEIGHT / LTH - 1 || coordy + acc * i < 0 || M->matrix[coordy + acc * i][coordx] == 'O'){
 				break;
 			}
@@ -294,7 +350,7 @@ bool calcDMG(struct map *M){
 bool dmgPlayer(struct map *M){
 	int i;
 	int rv;
-	if (M->Link.lifes > 0){
+	if (M->Link.lifes - 1 > 0){
 		compose(M);
 		M->Link.posX = M->Link.posXIni;
 		M->Link.posY = M->Link.posYIni;
@@ -306,8 +362,10 @@ bool dmgPlayer(struct map *M){
 		}
 		rv = 0;
 	}
-	else
+	else{
 		rv = 1;
+		M->Link.lifes--;
+	}
 	M->Link.lifes--;
 	return rv;
 }
@@ -317,6 +375,5 @@ void dmgEnemy(struct map *M, int enemyNum){
 	M->aliveEnemyNo--;
 	M->Link.score += 100;
 }
-
 
 

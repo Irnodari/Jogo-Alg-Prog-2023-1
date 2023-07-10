@@ -1,4 +1,4 @@
-#include "structsDefs.h"
+#include "functions.h"
 
 int callMainMenu(void);
 
@@ -12,4 +12,4 @@ void callSaveScore(int s);
 
 void compose(struct map* M);
 
-void callPause(struct map **M, int *mapNum);
+bool callPause(struct map **M, int *mapNum);

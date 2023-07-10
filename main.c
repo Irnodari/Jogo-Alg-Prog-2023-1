@@ -1,13 +1,16 @@
-#include "functions.h"
+#include "graphic.h"
+
+
+//A main está péssima de trabalhar com, tem um excesso de números mágicos
 
 int main(void){
 	srand(clock());
 	struct map *M, *buf;
 	int i, j, input, frame = 0, mapNum = 1, controlState;
-	char* template = "mapas/mapa%d.txt";
+	char* template = "./mapas/mapa%d.txt";
 	char mapName[32];
 	struct player TemporaryPlayer;
-	bool shouldKeepGoing;
+	bool shouldKeepGoing, exit = false;
 	bool gameEnded = false;
 
 
@@ -43,8 +46,9 @@ int main(void){
 					}
 					controlState = 0;
 				}
-				if (IsKeyPressed(KEY_P))
-						callPause(&M, &mapNum);
+				if (IsKeyPressed(KEY_P)){
+						exit = callPause(&M, &mapNum);
+				}
 				if (!(frame % TICK)){
 					input = getMovement();
 					if (isPlayerAtacking(M)){
@@ -74,7 +78,7 @@ int main(void){
 							M->Link.orientation = input;
 					}
 				}
-				if (!((frame+1) % (4*TICK))){
+				if (!((frame+1) % (QNTTICKMONSTRO*TICK))){
 					j = getMonsterQuantity(M);
 					for (i = 0; i < j; i++) 
 						moveMonster(M, i);
@@ -85,7 +89,7 @@ int main(void){
 				frame++;
 				if (frame == FPS)
 					frame = 0;
-			} while(!WindowShouldClose() && !calcDMG(M) && M->aliveEnemyNo);
+			} while(!exit && !calcDMG(M) && M->aliveEnemyNo);
 
 			TemporaryPlayer = M->Link;
 			TemporaryPlayer.isAtacking = false;

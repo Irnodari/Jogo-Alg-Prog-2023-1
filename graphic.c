@@ -1,7 +1,7 @@
-#include "functions.h"
+#include "graphic.h"
 
 
-void callPause(struct map **M, int *mapNum){
+bool callPause(struct map **M, int *mapNum){
 	bool shouldKeepGoing = true;
 	int i = 0;
 	struct map *buf;
@@ -9,19 +9,20 @@ void callPause(struct map **M, int *mapNum){
 	while(shouldKeepGoing){
 		if (IsKeyPressed(KEY_S)){
 			i++;
-			if (i == 3)
+			if (i == 4)
 				i = 0;
 		}
 		if (IsKeyPressed(KEY_W)){
 			i--;
 			if (i == -1)
-				i = 2;
+				i = 3;
 		}
 		BeginDrawing();
 		DrawRectangle(8 * LTH, 4 * LTH, 8 * LTH, 8 * LTH, BLACK); 
 		DrawText("Continuar", 9 * LTH, 5 * LTH, 40, WHITE);
 		DrawText("Salvar", 9 * LTH, 6 * LTH, 40, WHITE);
 		DrawText("Carregar", 9 * LTH, 7 * LTH, 40, WHITE);
+		DrawText("Sair", 9 * LTH, 8 * LTH, 40, WHITE);
 		DrawRectangle(8 * LTH + 10, 15 + 5 * LTH + i * LTH, 25, 10, RED);
 		EndDrawing();
 		if (IsKeyPressed(KEY_ENTER)){
@@ -35,9 +36,12 @@ void callPause(struct map **M, int *mapNum){
 					*M = buf;
 				}
 			}
+			if (i == 3)
+				return true;
 			shouldKeepGoing = false;
 		}
 	}
+	return false;
 }
 
 
@@ -72,38 +76,7 @@ void callScoreboard(void){
 	}
 }
 
-void saveScore(char* name, int score){
-	int size, i, j;
-	struct score scores[10];
-	FILE* arq = fopen("scoreboard", "rb");
-	if (arq != NULL){
-		fread(&size, sizeof(int), 1, arq);
-		fread(scores, sizeof(struct score), size, arq);
-		fclose(arq);
-		i = 0;
-		while (i < size && score < scores[i].score) i++;
-		j = size;
-		while (j > i){
-			if (j != 10)
-				scores[j] = scores[j - 1];
-			j--;
-		}
-		strcpy(scores[i].name, name);
-		scores[i].score = score;
-		if (size != 10)
-			size++;
-	}
-	else{
-		size = 1;
-		strcpy(scores->name, name);
-		scores->score = score;
-	}
-	arq = fopen("scoreboard", "wb");
-	fwrite(&size, sizeof(int), 1, arq);
-	fwrite(scores, sizeof(struct score), size, arq);
-	fclose(arq); 
-}
-
+//Isso só é uma barbaridade.
 char getKeyPress(void){
 
 	if (IsKeyPressed(KEY_A))
@@ -227,27 +200,28 @@ int callMainMenu(void){
 	int input = 0;
 	float width;
 	bool shouldKeepGoing = true;
+	Texture2D Link = LoadTexture("./sprites/Link_Menu.png");
 	while(shouldKeepGoing){
 		BeginDrawing();
 		ClearBackground(BLACK);
-		DrawText("A Lenda de #A_SER_DEFINIDO", 144, 101, 61, RED);
-		DrawText("A Lenda de #A_SER_DEFINIDO", 150, 100, 60, WHITE);
-		DrawText("Iniciar", 100, 200, 40, WHITE);
-		DrawText("Carregar Jogo", 100, 300, 40, WHITE);
-		DrawText("Scoreboard", 100, 400, 40, WHITE);
-		DrawText("Sair", 100, 500, 40, WHITE);
+		DrawText("ZIIL", 400, 100, 200, WHITE);
+		DrawText("Iniciar", 100, 300, 40, WHITE);
+		DrawText("Carregar Jogo", 100, 400, 40, WHITE);
+		DrawText("Scoreboard", 100, 500, 40, WHITE);
+		DrawText("Sair", 100, 600, 40, WHITE);
+		DrawTexture(Link, 650, 375, RAYWHITE);
 		switch(i){
 			case 0:
-				DrawRectangle(50, 215, 40, 10, RED);
-				break;
-			case 1:
 				DrawRectangle(50, 315, 40, 10, RED);
 				break;
-			case 2:
+			case 1:
 				DrawRectangle(50, 415, 40, 10, RED);
 				break;
-			case 3:
+			case 2:
 				DrawRectangle(50, 515, 40, 10, RED);
+				break;
+			case 3:
+				DrawRectangle(50, 615, 40, 10, RED);
 		}
 		EndDrawing();
 
@@ -361,4 +335,3 @@ void compose(struct map *M){
 	}
 	EndDrawing();
 }
-

@@ -1,8 +1,10 @@
-#include "graphic.h"
+#include "structsDefs.h"
 
 void initializeMonster(struct map *M, int coordx, int coordy);
 
 void initializePlayer(struct map *M, int coordx, int coordy);
+
+void saveScore(char* name, int score);
 
 bool calcDMG(struct map *M);
 
